@@ -12,6 +12,8 @@ spec:
         app: kafka
       annotations:
     spec:
+      # Automatic Updates available starting from k8-1.7
+      # updateStrategy: RollingUpdate
       terminationGracePeriodSeconds: 30
       initContainers:
       - name: init-config
@@ -49,11 +51,9 @@ spec:
             cpu: 100m
             memory: 512Mi
         readinessProbe:
-          exec:
-            command:
-            - /bin/sh
-            - -c
-            - 'echo "" | nc -w 1 127.0.0.1 9092'
+          tcpSocket:
+            port: 9092
+          initialDelaySeconds: 10
         volumeMounts:
         - name: config
           mountPath: /etc/kafka
@@ -71,3 +71,4 @@ spec:
       resources:
         requests:
           storage: 200Gi
+
