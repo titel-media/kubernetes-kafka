@@ -85,6 +85,10 @@ data:
     # The maximum size of a request that the socket server will accept (protection against OOM)
     socket.request.max.bytes=104857600
 
+    # Set the maximum size of a (batched)message to 10mb
+    message.max.bytes=10000000
+    max.message.bytes=10000000
+    replica.fetch.max.bytes=10000000
 
     ############################# Log Basics #############################
 
