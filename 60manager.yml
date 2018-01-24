@@ -1,0 +1,43 @@
+---
+apiVersion: apps/v1beta2
+kind: Deployment
+metadata:
+  name: kafka-manager
+  namespace: kafka
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: kafka-manager
+  template:
+    metadata:
+      labels:
+        app: kafka-manager
+    spec:
+      containers:
+      - name: kafka-manager
+        imagePullPolicy: Always
+        image: solsson/kafka-manager:latest
+        ports:
+        - containerPort: 80
+        env:
+        - name: ZK_HOSTS
+          value: zookeeper.zoo.svc.cluster.local:2181
+        command:
+        - ./bin/kafka-manager
+        - -Dhttp.port=80
+
+---
+kind: Service
+apiVersion: v1
+metadata:
+  name: kafka-manager
+  namespace: kafka
+spec:
+  selector:
+    app: kafka-manager
+  ports:
+  - protocol: TCP
+    port: 80
+    targetPort: 80
+
