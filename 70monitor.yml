@@ -1,0 +1,138 @@
+---
+kind: ConfigMap
+metadata:
+  name: kafka-monitor
+  namespace: kafka
+apiVersion: v1
+data:
+  entrypoint.sh: |-
+    #!/bin/sh
+    set -x
+    ROOT=$(dirname $0)
+    sed -i "s/{{ZOOKEEPER_CONNECT}}/$ZOOKEEPER_CONNECT/" $ROOT/kafka-monitor.properties
+    sed -i "s/{{KAFKA_CONNECT}}/$KAFKA_CONNECT/" $ROOT/kafka-monitor.properties
+    sed -i "s/{{STATSD_HOST}}/$STATSD_HOST/" $ROOT/kafka-monitor.properties
+    exec /opt/kafka-monitor/bin/kafka-monitor-start.sh $ROOT/kafka-monitor.properties
+
+  kafka-monitor.properties: |-
+    # This properties file specifies the tests/services that KafkaMonitor
+    # should instantiate and run, together with the key/value pairs used to
+    # configure these tests/services.
+    {
+    "single-cluster-monitor": {
+      "class.name": "com.linkedin.kmf.apps.SingleClusterMonitor",
+      "topic": "kafka-monitor-topic",
+      "zookeeper.connect": "{{ZOOKEEPER_CONNECT}}",
+      "bootstrap.servers": "{{KAFKA_CONNECT}}",
+      "produce.record.delay.ms": 100,
+      "topic-management.topicCreationEnabled": true,
+      "topic-management.replicationFactor" : 3,
+      "topic-management.partitionsToBrokersRatio" : 2.0,
+      "topic-management.rebalance.interval.ms" : 600000,
+      "topic-management.topicFactory.props": {
+      },
+      "topic-management.topic.props": {
+        "retention.ms": "3600000"
+      },
+      "produce.producer.props": {
+        "client.id": "kmf-client-id"
+      },
+      "consume.latency.sla.ms": "20000",
+      "consume.consumer.props": {
+      }
+    },
+    "jetty-service": {
+      "class.name": "com.linkedin.kmf.services.JettyService",
+      "jetty.port": 8000
+    },
+    "reporter-service": {
+      "class.name": "com.linkedin.kmf.services.DefaultMetricsReporterService",
+      "report.interval.sec": 60,
+      "report.metrics.list": [
+        "kmf:type=kafka-monitor:offline-runnable-count",
+        "kmf.services:type=produce-service,name=*:produce-availability-avg",
+        "kmf.services:type=consume-service,name=*:consume-availability-avg",
+        "kmf.services:type=produce-service,name=*:records-produced-total",
+        "kmf.services:type=consume-service,name=*:records-consumed-total",
+        "kmf.services:type=consume-service,name=*:records-lost-total",
+        "kmf.services:type=consume-service,name=*:records-duplicated-total",
+        "kmf.services:type=consume-service,name=*:records-delay-ms-avg",
+        "kmf.services:type=produce-service,name=*:records-produced-rate",
+        "kmf.services:type=produce-service,name=*:produce-error-rate",
+        "kmf.services:type=consume-service,name=*:consume-error-rate"
+      ]
+    },
+    "statsd-service": {
+       "class.name": "com.linkedin.kmf.services.StatsdMetricsReporterService",
+       "report.statsd.host": "{{STATSD_HOST}}",
+       "report.statsd.port": "8125",
+       "report.statsd.prefix": "kafka-monitor",
+       "report.interval.sec": 1,
+       "report.metrics.list": [
+         "kmf.services:type=produce-service,name=*:produce-availability-avg",
+         "kmf.services:type=consume-service,name=*:consume-availability-avg",
+         "kmf.services:type=produce-service,name=*:records-produced-total",
+         "kmf.services:type=consume-service,name=*:records-consumed-total",
+         "kmf.services:type=consume-service,name=*:records-delay-ms-avg",
+         "kmf.services:type=consume-service,name=*:records-lost-total",
+         "kmf.services:type=consume-service,name=*:records-duplicated-total"
+       ]
+    }
+    }
+
+---
+apiVersion: apps/v1beta2
+kind: Deployment
+metadata:
+  name: kafka-monitor
+  namespace: kafka
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: kafka-monitor
+  template:
+    metadata:
+      labels:
+        app: kafka-monitor
+    spec:
+      containers:
+      - name: kafka-monitor
+        imagePullPolicy: Always
+        image: solsson/kafka-monitor:latest
+        env:
+        - name: KAFKA_CONNECT
+          value: broker.kafka.svc.cluster.local:9092
+        - name: ZOOKEEPER_CONNECT
+          value: zookeeper.zoo.svc.cluster.local:2181
+        - name: STATSD_HOST
+          valueFrom:
+            fieldRef:
+              fieldPath: status.hostIP
+        ports:
+        - containerPort: 8080
+        command:
+        - /config-map/kafka-monitor/entrypoint.sh
+        volumeMounts:
+        - name: config
+          mountPath: /config-map/kafka-monitor
+      volumes:
+      - name: config
+        configMap:
+          name: kafka-monitor
+          defaultMode: 0777
+
+---
+kind: Service
+apiVersion: v1
+metadata:
+  name: kafka-monitor
+  namespace: kafka
+spec:
+  selector:
+    app: kafka-monitor
+  ports:
+  - protocol: TCP
+    port: 80
+    targetPort: 8080
+
