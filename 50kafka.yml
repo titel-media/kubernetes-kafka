@@ -17,6 +17,33 @@ spec:
         app: kafka
       annotations:
     spec:
+      # allow this to be run on dedicated kafka nodes
+      tolerations:
+      - key: "dedicated"
+        operator: "Equal"
+        value: "kafka"
+        effect: "NoSchedule"
+      affinity:
+        # Node affinity to have them run on their dedicated nodepool (if applicable)
+        nodeAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+          - weight: 1
+            preference:
+              matchExpressions:
+              - key: cloud.google.com/gke-nodepool
+                operator: In
+                values:
+                - pool-kafka
+        # Pod anti-affinity to have them run on separate nodes
+        podAntiAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            - labelSelector:
+                matchExpressions:
+                  - key: "app"
+                    operator: In
+                    values:
+                    - kafka
+              topologyKey: "kubernetes.io/hostname"
       terminationGracePeriodSeconds: 30
       initContainers:
       - name: init-config
