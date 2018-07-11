@@ -8,11 +8,11 @@ data:
   entrypoint.sh: |-
     #!/bin/sh
     set -x
-    ROOT=$(dirname $0)
-    sed -i "s/{{ZOOKEEPER_CONNECT}}/$ZOOKEEPER_CONNECT/" $ROOT/kafka-monitor.properties
-    sed -i "s/{{KAFKA_CONNECT}}/$KAFKA_CONNECT/" $ROOT/kafka-monitor.properties
-    sed -i "s/{{STATSD_HOST}}/$STATSD_HOST/" $ROOT/kafka-monitor.properties
-    exec /opt/kafka-monitor/bin/kafka-monitor-start.sh $ROOT/kafka-monitor.properties
+    cp $(dirname $0)/kafka-monitor.properties $PWD/kafka-monitor.properties
+    sed -i "s/{{ZOOKEEPER_CONNECT}}/$ZOOKEEPER_CONNECT/" $PWD/kafka-monitor.properties
+    sed -i "s/{{KAFKA_CONNECT}}/$KAFKA_CONNECT/" $PWD/kafka-monitor.properties
+    sed -i "s/{{STATSD_HOST}}/$STATSD_HOST/" $PWD/kafka-monitor.properties
+    exec /opt/kafka-monitor/bin/kafka-monitor-start.sh $PWD/kafka-monitor.properties
 
   kafka-monitor.properties: |-
     # This properties file specifies the tests/services that KafkaMonitor
