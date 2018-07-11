@@ -50,8 +50,8 @@ spec:
         -   "1"
       restartPolicy: Never
 ---
-apiVersion: apps/v1beta1
 kind: Deployment
+apiVersion: apps/v1
 metadata:
   name: basic-with-kafkacat
   namespace: test-kafka

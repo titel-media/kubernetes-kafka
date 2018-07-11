@@ -1,6 +1,6 @@
 ---
-apiVersion: apps/v1beta2
 kind: Deployment
+apiVersion: apps/v1
 metadata:
   name: kafka-manager
   namespace: kafka
@@ -22,7 +22,7 @@ spec:
         - containerPort: 80
         env:
         - name: ZK_HOSTS
-          value: zookeeper.zoo.svc.cluster.local:2181
+          value: zookeeper.zookeeper.svc.cluster.local:2181
         command:
         - ./bin/kafka-manager
         - -Dhttp.port=80

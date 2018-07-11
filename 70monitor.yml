@@ -81,8 +81,8 @@ data:
     }
 
 ---
-apiVersion: apps/v1beta2
 kind: Deployment
+apiVersion: apps/v1
 metadata:
   name: kafka-monitor
   namespace: kafka
@@ -104,7 +104,7 @@ spec:
         - name: KAFKA_CONNECT
           value: broker.kafka.svc.cluster.local:9092
         - name: ZOOKEEPER_CONNECT
-          value: zookeeper.zoo.svc.cluster.local:2181
+          value: zookeeper.zookeeper.svc.cluster.local:2181
         - name: STATSD_HOST
           valueFrom:
             fieldRef:
